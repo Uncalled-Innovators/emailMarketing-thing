@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     // Send emails in parallel
     const sendPromises = emails.map(async (email: string) => {
       return resend.emails.send({
-        from: process.env.EMAIL_FROM || "onboarding@resend.dev",
+        from: process.env.EMAIL_FROM || '',
         to: email,
         subject,
         html: content,
