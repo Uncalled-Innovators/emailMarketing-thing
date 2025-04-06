@@ -53,8 +53,8 @@ export default function SignUpForm({
       // Show success message and redirect to login
       alert("Please check your email for verification link");
       router.push("/auth/login");
-    } catch (error: any) {
-      setError(error.message || "Something went wrong");
+    } catch (error: unknown) {
+        setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
