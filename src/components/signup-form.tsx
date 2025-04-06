@@ -49,12 +49,13 @@ export default function SignUpForm({
     const supabase = createClient();
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signUp({
         email,
+        password,
         options: {
-          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
-            password, // We'll store this temporarily to use it after OTP verification
+            password, // We'll store this temporarily
           },
         },
       });
@@ -62,7 +63,7 @@ export default function SignUpForm({
       if (error) throw error;
 
       setShowOtpInput(true);
-      setError("Please check your email for the OTP code");
+      setError("Please check your email for the verification code");
       setIsLoading(false);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Something went wrong");
@@ -86,15 +87,7 @@ export default function SignUpForm({
 
       if (error) throw error;
 
-      // After OTP verification, create the actual account with password
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (signUpError) throw signUpError;
-
-      alert("Account created successfully! Please log in.");
+      alert("Email verified successfully! Please log in.");
       router.push("/auth/login");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Failed to verify OTP");
