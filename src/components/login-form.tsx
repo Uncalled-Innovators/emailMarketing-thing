@@ -92,7 +92,7 @@ export default function LoginForm({
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
               <div className="text-sm text-center">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link
                   href="/auth/signup"
                   className="underline underline-offset-4"

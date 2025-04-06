@@ -64,8 +64,8 @@ export default function SignUpForm({
       setShowOtpInput(true);
       setError("Please check your email for the OTP code");
       setIsLoading(false);
-    } catch (error: any) {
-      setError(error.message || "Something went wrong");
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Something went wrong");
       setIsLoading(false);
     }
   };
@@ -96,8 +96,8 @@ export default function SignUpForm({
 
       alert("Account created successfully! Please log in.");
       router.push("/auth/login");
-    } catch (error: any) {
-      setError(error.message || "Failed to verify OTP");
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Failed to verify OTP");
       setIsLoading(false);
     }
   };
