@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { createClient } from "@/lib/client";
 
 export default function HomePage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
   const [emails, setEmails] = useState("");
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
@@ -17,13 +18,26 @@ export default function HomePage() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Protect the route
-  const supabase = createClient();
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (!session) {
-      router.push("/auth/login");
-    }
-  });
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) {
+          router.replace("/auth/login");
+          return;
+        }
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Auth check error:", error);
+        router.replace("/auth/login");
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   const handleSend = async () => {
     setError(null);
@@ -64,6 +78,14 @@ export default function HomePage() {
       setIsSending(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
