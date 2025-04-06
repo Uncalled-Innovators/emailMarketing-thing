@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function LoginForm({
   className,
@@ -27,9 +28,17 @@ export default function LoginForm({
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const supabase = createClient();
     setIsLoading(true);
     setError(null);
+
+    // Validate email domain
+    if (!email.endsWith("@uncalledinnovators.com")) {
+      setError("Only @uncalledinnovators.com email addresses are allowed");
+      setIsLoading(false);
+      return;
+    }
+
+    const supabase = createClient();
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -51,7 +60,7 @@ export default function LoginForm({
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Enter your @uncalledinnovators.com email to login
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -62,7 +71,7 @@ export default function LoginForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="you@uncalledinnovators.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -82,6 +91,15 @@ export default function LoginForm({
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
+              <div className="text-sm text-center">
+                Don't have an account?{" "}
+                <Link
+                  href="/auth/signup"
+                  className="underline underline-offset-4"
+                >
+                  Sign up
+                </Link>
+              </div>
             </div>
           </form>
         </CardContent>
