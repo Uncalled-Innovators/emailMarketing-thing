@@ -13,9 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Link from "next/link";
 
-export default function SignUpForm({
+export default function AuthForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
@@ -24,11 +23,10 @@ export default function SignUpForm({
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState("");
 
-  const handleSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAuth = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setIsLoading(true);
@@ -40,33 +38,47 @@ export default function SignUpForm({
       return;
     }
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-
     const supabase = createClient();
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Check if user exists
+      const {
+        data: { users },
+        error: getUserError,
+      } = await supabase.auth.admin.listUsers();
+
+      if (getUserError) throw getUserError;
+
+      const userExists = users?.some((user) => user.email === email);
+
+      if (!userExists) {
+        // If user doesn't exist, create new account
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+
+        if (signUpError) throw signUpError;
+      }
+
+      // Send OTP for verification
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
-        password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            password, // We'll store this temporarily
-          },
         },
       });
 
-      if (error) throw error;
+      if (otpError) throw otpError;
 
       setShowOtpInput(true);
       setError("Please check your email for the verification code");
-      setIsLoading(false);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -79,18 +91,28 @@ export default function SignUpForm({
     const supabase = createClient();
 
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      // Verify OTP
+      const { error: verifyError } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: "signup",
+        type: "email",
       });
 
-      if (error) throw error;
+      if (verifyError) throw verifyError;
 
-      alert("Email verified successfully! Please log in.");
-      router.push("/auth/login");
+      // After verification, sign in with password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) throw signInError;
+
+      // Redirect to home page
+      router.push("/home");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Failed to verify OTP");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -98,14 +120,14 @@ export default function SignUpForm({
   return (
     <Card className={className} {...props}>
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Create an account</CardTitle>
+        <CardTitle className="text-2xl">Welcome</CardTitle>
         <CardDescription>
-          Enter your @uncalledinnovators.com email below
+          Enter your @uncalledinnovators.com email to continue
         </CardDescription>
       </CardHeader>
       <CardContent>
         {!showOtpInput ? (
-          <form onSubmit={handleSignUp} className="space-y-4">
+          <form onSubmit={handleAuth} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -129,27 +151,10 @@ export default function SignUpForm({
                 disabled={isLoading}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
             {error && <div className="text-sm text-red-500">{error}</div>}
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Sending verification code..." : "Sign up"}
+              {isLoading ? "Processing..." : "Continue"}
             </Button>
-            <div className="text-sm text-center text-gray-500">
-              Already have an account?{" "}
-              <Link href="/auth/login" className="underline underline-offset-4">
-                Login
-              </Link>
-            </div>
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
