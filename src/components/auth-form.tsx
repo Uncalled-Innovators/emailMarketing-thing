@@ -41,38 +41,39 @@ export default function AuthForm({
     const supabase = createClient();
 
     try {
-      // Check if user exists
-      const {
-        data: { users },
-        error: getUserError,
-      } = await supabase.auth.admin.listUsers();
+      // First try to sign in with password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (getUserError) throw getUserError;
-
-      const userExists = users?.some((user) => user.email === email);
-
-      if (!userExists) {
-        // If user doesn't exist, create new account
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
-
-        if (signUpError) throw signUpError;
+      if (!signInError) {
+        // If sign in successful, redirect to home
+        router.push("/home");
+        return;
       }
 
-      // Send OTP for verification
-      const { error: otpError } = await supabase.auth.signInWithOtp({
+      // If sign in fails, try to sign up
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
+        password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
-      if (otpError) throw otpError;
+      if (signUpError) {
+        // If sign up fails, it might be because the user already exists
+        // In that case, send an OTP for verification
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+
+        if (otpError) throw otpError;
+      }
 
       setShowOtpInput(true);
       setError("Please check your email for the verification code");
